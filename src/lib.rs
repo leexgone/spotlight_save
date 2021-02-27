@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::PathBuf};
+use std::{error::Error, fmt::Display, path::PathBuf};
 
 use clap::{App, Arg};
 
@@ -59,4 +59,60 @@ impl Config {
             archive,
         })
     }
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    save_images(&config)?;
+    if config.archive {
+        archive_images(&config)?;
+    }
+
+    Ok(())
+}
+
+fn get_spotlight_dir() -> Result<PathBuf, Box<dyn Error>> {
+    let home_dir = home::home_dir().unwrap();
+    let package_dir = home_dir.join("AppData\\Local\\Packages");
+
+    println!("{}", package_dir.display());
+
+    for entry in package_dir.read_dir()? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if !path.is_dir() {
+            continue;
+        }
+
+        let pathname = path.file_name().unwrap();
+        let pathname = pathname.to_str().unwrap();
+
+        if pathname.starts_with("Microsoft.Windows.ContentDeliveryManager_") {
+            let image_dir = path.join("LocalState\\Assets");
+
+            return  Ok(image_dir);
+        }
+    }
+
+    let err = std::io::Error::new(std::io::ErrorKind::NotFound, String::from("Can not find Spotlight image dir"));
+    Err(Box::new(err))
+}
+
+fn save_images(config: &Config) -> Result<(), Box<dyn Error>> {
+    let spotlight_dir = get_spotlight_dir()?;
+
+    Ok(())
+}
+
+fn archive_images(config: &Config) -> Result<(), Box<dyn Error>> {
+    Ok(())
+}
+
+macro_rules! log {
+    ($enabled:expr) => {
+        {if $enabled { println!(); }}
+    };
+    ($enabled:expr, $($arg:tt)*) => {
+        {if $enabled { println!($($arg)*); }}
+    };
 }

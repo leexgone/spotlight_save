@@ -8,5 +8,8 @@ fn main() {
         process::exit(1);
     });
 
-    println!("{}", config)
+    if let Err(e) = spotlight_save::run(config) {
+        eprintln!("Error when saving images: {}", e);
+        process::exit(1);
+    }
 }
