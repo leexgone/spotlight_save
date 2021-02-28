@@ -1,6 +1,7 @@
-use std::{error::Error, fmt::Display, path::PathBuf};
+use std::{error::Error, fmt::Display, fs, path::PathBuf};
 
 use clap::{App, Arg};
+use image::{GenericImageView, io::Reader};
 
 #[derive(Debug)]
 pub struct Config {
@@ -26,9 +27,11 @@ impl Config {
                             .index(1))
                         .arg(Arg::with_name("verbose")
                             .short("v")
+                            .long("verbose")
                             .help("Use verbose output"))
                         .arg(Arg::with_name("archive")
                             .short("a")
+                            .long("archive")
                             .help("Archive images by year"))
                         .get_matches();
 
@@ -59,6 +62,15 @@ impl Config {
             archive,
         })
     }
+}
+
+macro_rules! log {
+    ($enabled:expr) => {
+        {if $enabled { println!(); }}
+    };
+    ($enabled:expr, $($arg:tt)*) => {
+        {if $enabled { println!($($arg)*); }}
+    };
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
@@ -100,19 +112,63 @@ fn get_spotlight_dir() -> Result<PathBuf, Box<dyn Error>> {
 
 fn save_images(config: &Config) -> Result<(), Box<dyn Error>> {
     let spotlight_dir = get_spotlight_dir()?;
+    log!(config.verbose, "Scan spotlight dir: {}", spotlight_dir.display());
+
+    let mut count = 0;
+    for entry in spotlight_dir.read_dir()? {
+        let entry = entry?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+
+        if save_image(config, &path) {
+            count += 1;
+        }
+    }
+
+    log!(config.verbose, "{} images saved!", count);
 
     Ok(())
+}
+
+fn save_image(config: &Config, filepath: &PathBuf) -> bool {
+    let image = if let Ok(reader) = Reader::open(filepath) {
+        if let Ok(image) = reader.decode() {
+            image
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    };
+
+    if image.width() < image.height() || image.width() < 800 || image.height() < 600 {
+        return false;
+    }
+
+    let format = if let Ok(format) = image::guess_format(image.as_bytes()) {
+        format
+    } else {
+        return false;
+    };
+    let ext = format.extensions_str().last().unwrap();
+    let mut filename = String::from(filepath.file_name().unwrap().to_str().unwrap());
+    filename.push_str(".");
+    filename.push_str(*ext);
+
+    let target_file = config.target.join(filename);
+    if target_file.exists() {
+        return false;
+    }
+
+    log!(config.verbose, "Saving image: {} ...", target_file.display());
+
+    fs::copy(filepath, target_file).is_ok()
 }
 
 fn archive_images(config: &Config) -> Result<(), Box<dyn Error>> {
-    Ok(())
-}
+    log!(config.verbose, "Archive images in dir: {}", config.target.display());
 
-macro_rules! log {
-    ($enabled:expr) => {
-        {if $enabled { println!(); }}
-    };
-    ($enabled:expr, $($arg:tt)*) => {
-        {if $enabled { println!($($arg)*); }}
-    };
+    Ok(())
 }
