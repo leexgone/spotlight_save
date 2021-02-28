@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Display, fs, path::PathBuf};
+use std::{error::Error, fmt::Display, fs, io::Cursor, path::PathBuf};
 
 use clap::{App, Arg};
 use image::{GenericImageView, io::Reader};
@@ -86,7 +86,7 @@ fn get_spotlight_dir() -> Result<PathBuf, Box<dyn Error>> {
     let home_dir = home::home_dir().unwrap();
     let package_dir = home_dir.join("AppData\\Local\\Packages");
 
-    println!("{}", package_dir.display());
+    // println!("{}", package_dir.display());
 
     for entry in package_dir.read_dir()? {
         let entry = entry?;
@@ -133,15 +133,29 @@ fn save_images(config: &Config) -> Result<(), Box<dyn Error>> {
 }
 
 fn save_image(config: &Config, filepath: &PathBuf) -> bool {
-    let image = if let Ok(reader) = Reader::open(filepath) {
-        if let Ok(image) = reader.decode() {
-            image
-        } else {
-            return false;
-        }
+    log!(config.verbose, "Scan file: {}...", filepath.display());
+
+    let bytes = if let Ok(data) = fs::read(filepath) {
+        data
     } else {
         return false;
     };
+    let reader = Reader::new(Cursor::new(bytes));
+    let image = if let Ok(image) = reader.decode() {
+        image
+    } else {
+        return false;
+    };
+
+    // let image = if let Ok(reader) = Reader::new(Cursor::new(bytes)) { //open(filepath) {
+    //     if let Ok(image) = reader.decode() {
+    //         image
+    //     } else {
+    //         return false;
+    //     }
+    // } else {
+    //     return false;
+    // };
 
     if image.width() < image.height() || image.width() < 800 || image.height() < 600 {
         return false;
