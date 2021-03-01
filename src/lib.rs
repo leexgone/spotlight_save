@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Display, fs, io::Cursor, path::PathBuf};
+use std::{error::Error, fmt::Display, fs, path::PathBuf};
 
 use clap::{App, Arg};
 use image::{GenericImageView, io::Reader};
@@ -135,37 +135,31 @@ fn save_images(config: &Config) -> Result<(), Box<dyn Error>> {
 fn save_image(config: &Config, filepath: &PathBuf) -> bool {
     log!(config.verbose, "Scan file: {}...", filepath.display());
 
-    let bytes = if let Ok(data) = fs::read(filepath) {
-        data
+    let reader = if let Ok(reader) = Reader::open(filepath) {
+        reader
     } else {
         return false;
     };
-    let reader = Reader::new(Cursor::new(bytes));
+    let reader = if let Ok(reader) = reader.with_guessed_format() {
+        reader
+    } else {
+        return false;
+    };
+    let format = if let Some(format) = reader.format() {
+        format
+    } else {
+        return false;
+    };
     let image = if let Ok(image) = reader.decode() {
         image
     } else {
         return false;
     };
 
-    // let image = if let Ok(reader) = Reader::new(Cursor::new(bytes)) { //open(filepath) {
-    //     if let Ok(image) = reader.decode() {
-    //         image
-    //     } else {
-    //         return false;
-    //     }
-    // } else {
-    //     return false;
-    // };
-
     if image.width() < image.height() || image.width() < 800 || image.height() < 600 {
         return false;
     }
 
-    let format = if let Ok(format) = image::guess_format(image.as_bytes()) {
-        format
-    } else {
-        return false;
-    };
     let ext = format.extensions_str().last().unwrap();
     let mut filename = String::from(filepath.file_name().unwrap().to_str().unwrap());
     filename.push_str(".");
