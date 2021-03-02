@@ -86,8 +86,6 @@ fn get_spotlight_dir() -> Result<PathBuf, Box<dyn Error>> {
     let home_dir = home::home_dir().unwrap();
     let package_dir = home_dir.join("AppData\\Local\\Packages");
 
-    // println!("{}", package_dir.display());
-
     for entry in package_dir.read_dir()? {
         let entry = entry?;
         let path = entry.path();
