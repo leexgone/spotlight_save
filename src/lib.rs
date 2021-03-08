@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Display, fs, path::PathBuf};
+use std::{error::Error, fmt::Display, fs, ops::Sub, path::PathBuf, time::{Duration, SystemTime}};
 
 use clap::{App, Arg};
 use image::{GenericImageView, io::Reader};
@@ -158,7 +158,7 @@ fn save_image(config: &Config, filepath: &PathBuf) -> bool {
         return false;
     }
 
-    let ext = format.extensions_str().last().unwrap();
+    let ext = format.extensions_str().first().unwrap();
     let mut filename = String::from(filepath.file_name().unwrap().to_str().unwrap());
     filename.push_str(".");
     filename.push_str(*ext);
@@ -175,6 +175,31 @@ fn save_image(config: &Config, filepath: &PathBuf) -> bool {
 
 fn archive_images(config: &Config) -> Result<(), Box<dyn Error>> {
     log!(config.verbose, "Archive images in dir: {}", config.target.display());
+
+    let one_year = Duration::from_secs(60 * 60 * 24 * 365);
+    let timeline = SystemTime::now().checked_sub(one_year).unwrap();
+
+    for entry in config.target.read_dir()? {
+        let entry = entry?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+
+        if let Ok(metadata) = entry.metadata() {
+            let filetime = if let Ok(modified) = metadata.modified() {
+                modified
+            } else if let Ok(created) = metadata.created() {
+                created
+            } else {
+                continue;
+            };
+
+            if filetime < timeline {
+                
+            }
+        }
+    }
 
     Ok(())
 }
