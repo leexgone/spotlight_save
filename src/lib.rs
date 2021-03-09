@@ -1,5 +1,6 @@
-use std::{error::Error, fmt::Display, fs, ops::Sub, path::PathBuf, time::{Duration, SystemTime}};
+use std::{error::Error, fmt::Display, fs, path::PathBuf};
 
+use chrono::{DateTime, Duration, Local};
 use clap::{App, Arg};
 use image::{GenericImageView, io::Reader};
 
@@ -176,8 +177,7 @@ fn save_image(config: &Config, filepath: &PathBuf) -> bool {
 fn archive_images(config: &Config) -> Result<(), Box<dyn Error>> {
     log!(config.verbose, "Archive images in dir: {}", config.target.display());
 
-    let one_year = Duration::from_secs(60 * 60 * 24 * 365);
-    let timeline = SystemTime::now().checked_sub(one_year).unwrap();
+    let timeline = Local::today() - Duration::days(365);
 
     for entry in config.target.read_dir()? {
         let entry = entry?;
@@ -194,9 +194,19 @@ fn archive_images(config: &Config) -> Result<(), Box<dyn Error>> {
             } else {
                 continue;
             };
+            let filedate = DateTime::from(filetime).date();
 
-            if filetime < timeline {
+            if filedate < timeline {
+                log!(config.verbose, "archive file: {} ...", path.display());
                 
+                let year = filedate.format("%Y").to_string();
+                let dir = config.target.join(year);
+                if !dir.exists() {
+                    fs::create_dir(&dir)?;
+                }
+                let bak_file = dir.join(path.file_name().unwrap());
+                fs::copy(&path, &bak_file)?;
+                fs::remove_file(&path)?;
             }
         }
     }
