@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 
-clap = "2.33.3"
-home = "0.5.3"
-image = "0.23.13"
-chrono = "0.4.19"
+clap = "2.33"
+home = "0.5"
+image = "0.23"
+chrono = "0.4"
