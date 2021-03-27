@@ -196,7 +196,7 @@ fn archive_images(config: &Config) -> Result<(), Box<dyn Error>> {
             };
             let filedate = DateTime::from(filetime).date();
 
-            if filedate < timeline {
+            if filedate < timeline {    
                 log!(config.verbose, "archive file: {} ...", path.display());
                 
                 let year = filedate.format("%Y").to_string();
