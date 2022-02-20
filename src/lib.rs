@@ -1,8 +1,8 @@
 use std::{error::Error, fmt::Display, fs, path::PathBuf};
 
 use chrono::{DateTime, Duration, Local};
-use clap::{App, Arg};
-use image::{GenericImageView, io::Reader};
+use clap::{Command, Arg};
+use image::{io::Reader};
 
 #[derive(Debug)]
 pub struct Config {
@@ -19,19 +19,19 @@ impl Display for Config {
 
 impl Config {
     pub fn new() -> Result<Config, String> {
-        let matches = App::new("spotlight_save")
+        let matches = Command::new("spotlight_save")
                         .version("1.0.0")
                         .author("Steven Lee <leexgone@163.com>")
                         .about("Save splotlight images in Win10.")
-                        .arg(Arg::with_name("DIR")
+                        .arg(Arg::new("DIR")
                             .help("Target image dir. Default dir is '${HOME}/Pictures/Spotlight/'")
                             .index(1))
-                        .arg(Arg::with_name("verbose")
-                            .short("v")
+                        .arg(Arg::new("verbose")
+                            .short('v')
                             .long("verbose")
                             .help("Use verbose output"))
-                        .arg(Arg::with_name("archive")
-                            .short("a")
+                        .arg(Arg::new("archive")
+                            .short('a')
                             .long("archive")
                             .help("Archive images by year"))
                         .get_matches();
